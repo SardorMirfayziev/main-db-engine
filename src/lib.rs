@@ -148,3 +148,16 @@ fn walk_to_the_next_pair() {
     assert_eq!(key1, b"cat".to_vec());
     assert_eq!(value1, b"7".to_vec());
 }
+
+#[test]
+fn get_finds_a_later_key() {
+    // Two pairs: (fox, 9) then (cat, 7). "cat" is the second pair.
+    let leaf = build_leaf(vec![
+        (b"fox".to_vec(), b"9".to_vec()),
+        (b"cat".to_vec(), b"7".to_vec()),
+    ]);
+    // get walks past pair 0 to find "cat".
+    assert_eq!(get(&leaf, &b"cat".to_vec()), Some(b"7".to_vec()));
+    // The first key still works.
+    assert_eq!(get(&leaf, &b"fox".to_vec()), Some(b"9".to_vec()));
+}
