@@ -47,6 +47,29 @@ pub fn read_pair_at(leaf: &Vec<u8>, byte_pos: usize) -> (Vec<u8>, Vec<u8>, usize
     (key_bytes, value_bytes, next_pos)
 }
 
+// Find a value by its key. Walk each pair, compare keys, return the value on a
+// match. Walking uses the next_pos cursor from read_pair_at (decision D8).
+pub fn get(leaf: &Vec<u8>, wanted_key: &Vec<u8>) -> Option<Vec<u8>> {
+    // How many pairs this leaf holds.
+    let pair_count = number_of_pairs(leaf) as usize;
+    // The first pair starts right after the 2-byte count.
+    let mut byte_pos = 2;
+    let mut pair_index = 0;
+    while pair_index < pair_count {
+        // Read this pair and where the next one starts.
+        let (key_bytes, value_bytes, next_pos) = read_pair_at(leaf, byte_pos);
+        // On a key match, hand back this pair's value.
+        if key_bytes == *wanted_key {
+            return Some(value_bytes);
+        }
+        // No match: step the cursor to the next pair.
+        byte_pos = next_pos;
+        pair_index += 1;
+    }
+    // Walked every pair without a match.
+    None
+}
+
 #[test]
 fn empty_leaf_has_zero_pairs() {
     let leaf = build_leaf(vec![]);
@@ -77,4 +100,11 @@ fn read_back_the_stored_pair() {
     assert_eq!(key_bytes, b"fox".to_vec());
     assert_eq!(value_bytes, b"9".to_vec());
     assert_eq!(next_pos, 10);
+}
+
+#[test]
+fn get_returns_value_for_known_key() {
+    // Build a one-pair leaf, then look the key up and get its value.
+    let leaf = build_leaf(vec![(b"fox".to_vec(), b"9".to_vec())]);
+    assert_eq!(get(&leaf, &b"fox".to_vec()), Some(b"9".to_vec()));
 }
