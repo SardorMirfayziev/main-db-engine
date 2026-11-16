@@ -129,3 +129,22 @@ fn read_n_pairs() {
     // The known key still works after the miss.
     assert_eq!(get(&leaf, &b"fox".to_vec()), Some(b"9".to_vec()));
 }
+
+#[test]
+fn walk_to_the_next_pair() {
+    // Two pairs back to back: (fox, 9) then (cat, 7).
+    let leaf = build_leaf(vec![
+        (b"fox".to_vec(), b"9".to_vec()),
+        (b"cat".to_vec(), b"7".to_vec()),
+    ]);
+    // Read pair 0: it starts at byte 2 (right after the 2-byte count).
+    let (key0, value0, next_pos) = read_pair_at(&leaf, 2);
+    assert_eq!(key0, b"fox".to_vec());
+    assert_eq!(value0, b"9".to_vec());
+    // The next pair starts where pair 0 ends.
+    assert_eq!(next_pos, 10);
+    // Feed next_pos back in to walk to pair 1.
+    let (key1, value1, _) = read_pair_at(&leaf, next_pos);
+    assert_eq!(key1, b"cat".to_vec());
+    assert_eq!(value1, b"7".to_vec());
+}
