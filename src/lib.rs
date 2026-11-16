@@ -108,3 +108,12 @@ fn get_returns_value_for_known_key() {
     let leaf = build_leaf(vec![(b"fox".to_vec(), b"9".to_vec())]);
     assert_eq!(get(&leaf, &b"fox".to_vec()), Some(b"9".to_vec()));
 }
+
+#[test]
+fn get_returns_none_for_missing_key() {
+    // A key that is not in the leaf gives nothing back.
+    let leaf = build_leaf(vec![(b"fox".to_vec(), b"9".to_vec())]);
+    assert_eq!(get(&leaf, &b"cat".to_vec()), None);
+    // The known key still works after the miss.
+    assert_eq!(get(&leaf, &b"fox".to_vec()), Some(b"9".to_vec()));
+}
