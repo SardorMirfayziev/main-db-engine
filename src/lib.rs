@@ -117,3 +117,15 @@ fn get_returns_none_for_missing_key() {
     // The known key still works after the miss.
     assert_eq!(get(&leaf, &b"fox".to_vec()), Some(b"9".to_vec()));
 }
+
+#[test]
+fn read_n_pairs() {
+    // A key that is not in the leaf gives nothing back.
+    let leaf = build_leaf(vec![
+        (b"fox".to_vec(), b"9".to_vec()),
+        (b"cat".to_vec(), b"10".to_vec()),
+    ]);
+    assert_eq!(number_of_pairs(&leaf), 2);
+    // The known key still works after the miss.
+    assert_eq!(get(&leaf, &b"fox".to_vec()), Some(b"9".to_vec()));
+}
