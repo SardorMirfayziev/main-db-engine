@@ -147,4 +147,48 @@ impl Leaf {
 
         Leaf { bytes: buffer }
     }
+
+    // Remove a key from the leaf and return a brand-new Leaf (D22 — copy-on-write).
+    // Walk every old pair into a fresh buffer, copying all of them except the one
+    // whose key matches. Patch the real count at the end. If no key matches, every
+    // pair is copied, so the result is an unchanged copy (D23 — safe no-op).
+    pub fn remove(&self, key_to_remove: &Vec<u8>) -> Leaf {
+        let nkeys = self.number_of_pairs();
+
+        // Fresh buffer. Start with a placeholder count; we patch it at the end.
+        let mut buffer: Vec<u8> = Vec::new();
+        buffer.extend_from_slice(&0u16.to_le_bytes());
+
+        let mut cur_byte_position = 2;
+        let mut index = 0;
+        let mut kept_pair_count: u16 = 0;
+
+        while &index < &nkeys {
+            let (found_key, found_val, next_byte) = self.read_pair_at(cur_byte_position);
+
+            if found_key == *key_to_remove {
+                // Matched: skip it, so this pair is not copied into the new leaf.
+            } else {
+                // No match: copy the old pair unchanged.
+                let found_key_len = found_key.len() as u16;
+                let found_val_len = found_val.len() as u16;
+
+                buffer.extend_from_slice(&found_key_len.to_le_bytes());
+                buffer.extend_from_slice(&found_val_len.to_le_bytes());
+                buffer.extend_from_slice(&found_key);
+                buffer.extend_from_slice(&found_val);
+                kept_pair_count = kept_pair_count + 1;
+            }
+
+            cur_byte_position = next_byte;
+            index = index + 1;
+        }
+
+        // Patch the first two bytes with how many pairs we actually kept.
+        let kept_count_le = kept_pair_count.to_le_bytes();
+        buffer[0] = kept_count_le[0];
+        buffer[1] = kept_count_le[1];
+
+        Leaf { bytes: buffer }
+    }
 }
